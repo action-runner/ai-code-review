@@ -376,15 +376,19 @@ class AzureModel extends model_1.Model {
                 core.info("No files to generate comment for.");
                 return [];
             }
+            const prompt = yield this.generatePrompt({});
             core.info(`Generating comment for ${this.files.length} files...`);
             core.startGroup("File Changes");
             core.info(`${this.files.map((file) => file.filePath).join("\n")}`);
+            core.endGroup();
+            core.startGroup("Prompt");
+            core.info(prompt);
             core.endGroup();
             const response = yield this.client.post("", {
                 messages: [
                     {
                         role: "system",
-                        content: yield this.generatePrompt({}),
+                        content: prompt,
                     },
                 ],
             });
@@ -428,6 +432,7 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.Model = void 0;
 const nunjucks_1 = __importDefault(__nccwpck_require__(4433));
 const promises_1 = __nccwpck_require__(3292);
+const simple_prompt_1 = __nccwpck_require__(9214);
 class Model {
     constructor(args) {
         this.args = args;
@@ -448,56 +453,91 @@ class Model {
                 return yield (0, promises_1.readFile)(this.args.promptFile, "utf-8");
             }
             else {
-                return `
-      You are a software engineer working on a project. You are reviewing a pull request. 
-      You should raise questions or concerns about the code. If no issues are found, you should skip the file.
-      Your comment should follow the following principles:
-      1. Code Quality
-      2. Performance
-      3. Security
-      4. Documentation
-      5. Naming conventions
-      6. Coding style
-      7. Testing
-      8. Simplicity
-      9. Maintainability
-      10. Reusability and readability
-      11. Error handling
-      12. Logging
-
-      Do not raise question about 'some file is added without any implementation'.
-
-      ---pull request info---
-      Pull Request Title: {{ pullRequest.title }}
-      Pull Request Description: {{ pullRequest.description }}
-      ---pull request info end---
-      ---Code changes---
-      Code changes are follow:
-      {% for file in files %}
-      ---start---
-      %% File path: {{ file.filePath }} %%
-      %% Line start: {{ file.lineStart }} %%
-      %% Line end: {{ file.lineEnd }} %%
-        {{ file.content }}
-      ---end---
-      {% endfor %}
-      ---Code changes end---
-
-      You leave the following comment for each file using the following template:
-      \`{file_path}\` (code block in markdown)
-      {comment}
-      `;
+                return simple_prompt_1.PROMPT_TEXT;
             }
         });
     }
     generatePrompt(args) {
         return __awaiter(this, void 0, void 0, function* () {
             nunjucks_1.default.configure({ autoescape: false });
-            return nunjucks_1.default.renderString(yield this.getPrompt(), Object.assign({ files: this.files, pullRequest: this.args.pullRequest }, args));
+            return nunjucks_1.default.renderString(yield this.getPrompt(), Object.assign({ files: this.files, pullRequest: this.cleanObjectString(this.args.pullRequest) }, args));
         });
+    }
+    /**
+     * Some obj may contain empty string. This function will replace those empty string to word 'empty'.
+     * @param obj Some obj
+     */
+    cleanObjectString(obj) {
+        for (const [key, value] of Object.entries(obj)) {
+            if (value === "") {
+                obj[key] = "empty";
+            }
+            if (typeof value === "object") {
+                this.cleanObjectString(value);
+            }
+            if (Array.isArray(value)) {
+                for (const item of value) {
+                    if (typeof item === "object") {
+                        this.cleanObjectString(item);
+                    }
+                }
+            }
+        }
+        return obj;
     }
 }
 exports.Model = Model;
+
+
+/***/ }),
+
+/***/ 9214:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.PROMPT_TEXT = void 0;
+exports.PROMPT_TEXT = `
+You are a software engineer working on a project. You are reviewing a pull request based on the code changes and pull request info.
+You should raise questions or concerns about the code, and some questions may already answered in the pull request section. Please use it accordingly.
+If no issues are found, you should skip the file. Do not include pull request info in your comment.
+Your comment should follow the following principles:
+1. Code Quality
+2. Performance
+3. Security
+4. Documentation
+5. Naming conventions
+6. Coding style
+7. Testing
+8. Simplicity
+9. Maintainability
+10. Reusability and readability
+11. Error handling
+12. Logging
+
+Do not raise question about 'some file is added without any implementation'.
+
+---pull request info---
+Pull Request Title: {{ pullRequest.title }}
+Pull Request Description: {{ pullRequest.description }}
+---pull request info end---
+---Code changes---
+Code changes are follow:
+{% for file in files %}
+---start---
+%% File path: {{ file.filePath }} %%
+%% Line start: {{ file.lineStart }} %%
+%% Line end: {{ file.lineEnd }} %%
+  {{ file.content }}
+---end---
+{% endfor %}
+---Code changes end---
+You leave the following comment for each file using the following template:
+{overview}
+{number} [file_path](file_path)[line_start, line_end] {comment}
+{comment}
+`;
 
 
 /***/ }),
