@@ -21,6 +21,7 @@ export class AzureModel extends Model {
       headers: {
         "Content-Type": "application/json",
         "api-key": args.connection.key,
+        
       },
     });
   }
