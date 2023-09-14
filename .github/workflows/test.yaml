@@ -25,30 +25,49 @@ jobs:
       - name: Test
         run: pnpm test
 
-  release:
-    if: ${{ (github.event.pusher.name != 'github action') && (github.ref == 'refs/heads/main') }}
-    needs: [ test ]
+  create-release:
+    if: ${{ github.event.pusher.name != 'github action' }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    needs:
+      - test
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Setup pnpm
-        uses: pnpm/action-setup@v2.2.4
+      - name: Checkout
+        uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v2
         with:
           version: latest
       - uses: actions/setup-node@v3
         with:
           node-version: "20"
+          cache: "pnpm"
       - run: pnpm install
       - run: pnpm build
-      - name: Setup git identity
-        run: |
-          git config --global user.email "github-action.github.com"
-          git config --global user.name "github action"
-      - run: pnpm release
+      - uses: EndBug/add-and-commit@v9
+        name: Add and commit version changed
+        with:
+          message: "Release ${{ steps.version.outputs.new_release_version }}"
+          push: false
+        if: steps.version.outputs.new_release_version != ''
+      - name: Create Release
+        uses: cycjimmy/semantic-release-action@v3
         env:
-          GITHUB_TOKEN: ${{secrets.RELEASE_TOKEN}}
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        with:
+          branch: main
+          dry_run: false
+      - uses: EndBug/add-and-commit@v9
+        name: Push release commit
+        with:
+          push: ${{ github.ref == 'refs/heads/main' }}
+      - name: Push release
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+          force: true
+        if: ${{ github.ref == 'refs/heads/main' }}
 
   
 

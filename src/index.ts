@@ -10,6 +10,8 @@ import { Runner } from "./runner";
   const ignoreFiles = core.getMultilineInput("ignoreFiles");
   const promptFile = core.getInput("promptFile");
   const targetBranch = core.getInput("targetBranch");
+  const prDescription = core.getInput("prDescription");
+  const prTitle = core.getInput("prTitle");
 
   const adapter = new CodeFileAdapter();
   const commentAdapter = new PrCommentAdapter();
@@ -22,6 +24,10 @@ import { Runner } from "./runner";
     files: [],
     ignoreFiles: [...ignoreFiles, "pnpm-lock.yaml", "package-lock.json"],
     promptFile: promptFile,
+    pullRequest: {
+      description: prDescription,
+      title: prTitle,
+    },
   });
 
   const runner = new Runner({

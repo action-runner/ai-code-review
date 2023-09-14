@@ -43,7 +43,7 @@ export class CodeFileAdapter extends Adapter<string, ICodeFile[]> {
         //   '+++ b/src/index.ts\n'
         const content = lines.slice(5).join("\n");
 
-        if (lines[4].includes("@@")) {
+        if (lines[4]?.includes("@@")) {
           const lineNumbers = lines[4].split("@@")[1].split(" ");
           const start = this.cleanNumber(lineNumbers[1].split(",")[0]);
           const end = this.cleanNumber(lineNumbers[2].split(",")[0]);
