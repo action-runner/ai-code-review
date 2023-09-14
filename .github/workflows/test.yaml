@@ -10,7 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Setup pnpm
         uses: pnpm/action-setup@v2.2.4
         with:
@@ -26,11 +26,11 @@ jobs:
         run: pnpm test
 
   release:
-    if: ${{ (github.event.pusher.name != 'github action') && (github.ref == 'refs/heads/master') }}
+    if: ${{ (github.event.pusher.name != 'github action') && (github.ref == 'refs/heads/main') }}
     needs: [ test ]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - name: Setup pnpm
