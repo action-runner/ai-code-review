@@ -5,12 +5,25 @@ branding:
   color: green
 
 inputs:
-  access_token:
-    description: Github Access Token to access and modify your pr's label
+  key:
+    description: 'Azure OpenAI Key'
     required: true
+  endpoint:
+    description: 'Azure OpenAI Endpoint'
+    required: true
+  ignoreFiles:
+    description: 'Files to ignore'
+    required: false
+  promptFile:
+    description: 'Prompt file'
+    required: false
+  targetBranch:
+    description: 'Target branch'
+    required: false
+    default: 'main'
 outputs:
-  labels:
+  comments:
     description: Generated labels for your pull request.
 runs:
-  using: 'node16'
+  using: 'node20'
   main: 'dist/index.js'

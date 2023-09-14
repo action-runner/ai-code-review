@@ -2,7 +2,7 @@ name: Lint PR
 on:
   pull_request:
     branches:
-      - master
+      - main
     types:
       - opened
       - edited
@@ -13,19 +13,31 @@ jobs:
     runs-on: ubuntu-latest
     name: Lint PR
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Use Node.js ${{ matrix.node-version }}
-        uses: actions/setup-node@v2
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2.2.4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'yarn'
-      - run: yarn
-      - run: yarn build
-      - name: label
+          version: latest
+      - name: Use Node.js 20
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+          cache: 'pnpm'
+      - run: pnpm install
+      - run: pnpm build
+      - name: PR
+        id: pr
         uses: ./
         with:
-          access_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Get the output
-        run: echo "The labels were ${{ steps.label.outputs.labels }}"
+          key: ${{ secrets.KEY }}
+          endpoint: ${{ secrets.ENDPOINT }}
+          ignoreFiles: |
+            .github/workflows/pr.yaml
+            dist/index.js
+            CHANGELOG.md
+      - uses: mshick/add-pr-comment@v2
+        with:
+          message-id: preview-url
+          message: ${{ steps.pr.outputs.comments }}
