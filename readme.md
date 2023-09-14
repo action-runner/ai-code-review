@@ -1,24 +1,41 @@
-# Conventional Labeler
+# AI Code Reviewer
 
-[![Test and Release](https://github.com/action-runner/conventional-labeler/actions/workflows/test.yaml/badge.svg)](https://github.com/action-runner/conventional-labeler/actions/workflows/test.yaml)
+## Introduction
 
-Conventional labeler will label your PR based on your PR's feature if it follows the conventional commit's guideline
+This is an AI Code Review Action will add a comment to your pull request when it detects a code review issue.
 
-## Required input
+## Current supported llms:
 
-- access_token: can be set by using `${{ secrets.GITHUB_TOKEN }}`
+- Azure OpenAI
 
-## Example
+## Usage
+
 ```yaml
-  label:
-    runs-on: ubuntu-latest
-    name: Lint PR
-    steps:
-      - name: label
-        uses: action-runner/conventional-labeler@v1
-        with:
-          access_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Get the output
-        run: echo "The labels were ${{ steps.label.outputs.labels }}"
+- name: PR
+  id: pr
+  uses: ./
+  with:
+    key: ${{ secrets.KEY }}
+    endpoint: ${{ secrets.ENDPOINT }}
+    ignoreFiles: |
+      .github/workflows/pr.yaml
+      dist/index.js
+- uses: mshick/add-pr-comment@v2
+  with:
+    message-id: preview-url
+    message: ${{ steps.pr.outputs.comments }}
+```
 
+You can also provide a prompt file in your repository, and the action will use it to generate the prompt.
+The format can use the following variables:
+
+```jinja
+{% for file in files %}
+  ---start---
+  %% File path: {{ file.filePath }} %%
+  %% Line start: {{ file.lineStart }} %%
+  %% Line end: {{ file.lineEnd }} %%
+    {{ file.content }}
+  ---end---
+{% endfor %}
 ```

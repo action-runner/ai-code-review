@@ -1,7 +1,7 @@
 import { ICodeFile } from "./code.file";
 
 export interface IComment {
-  type: string;
+  type: "comment" | "annotation";
   content: string;
   files: ICodeFile[];
 }
