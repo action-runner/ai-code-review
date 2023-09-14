@@ -46,6 +46,19 @@ describe("CodeFileAdapter", () => {
       expect(result[0]).toHaveProperty("lineEnd", 0);
     });
 
+    it("should return an array of ICodeFile objects when content only contains 3 lines", async () => {
+      mockGit.diff.mockResolvedValueOnce(
+          "diff --git a/file.txt b/file.txt\nindex e69de29..82593db 100644\n--- a/file.txt\n+++ b/file.txt"
+      );
+      const result = await adapter.adapt("main");
+      expect(Array.isArray(result)).toBe(true);
+      expect(result.length).toBe(1);
+      expect(result[0]).toHaveProperty("filePath", "file.txt");
+      expect(result[0]).toHaveProperty("content", "");
+      expect(result[0]).toHaveProperty("lineStart", 0);
+      expect(result[0]).toHaveProperty("lineEnd", 0);
+    });
+
     it("should return an array of ICodeFile objects if content contains diff --git", async () => {
       mockGit.diff.mockResolvedValueOnce(
         "diff --git a/file.txt b/file.txt\nindex e69de29..82593db 100644\n--- a/file.txt\n+++ b/file.txt\nb/hello.adapter.ts\n+hello world diff --git\n"

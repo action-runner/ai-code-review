@@ -37,17 +37,21 @@ export class AzureModel extends Model {
       core.info("No files to generate comment for.");
       return [];
     }
+    const prompt = await this.generatePrompt({});
 
     core.info(`Generating comment for ${this.files.length} files...`);
     core.startGroup("File Changes");
     core.info(`${this.files.map((file) => file.filePath).join("\n")}`);
+    core.endGroup();
+    core.startGroup("Prompt");
+    core.info(prompt);
     core.endGroup();
 
     const response = await this.client.post("", {
       messages: [
         {
           role: "system",
-          content: await this.generatePrompt({}),
+          content: prompt,
         },
       ],
     });

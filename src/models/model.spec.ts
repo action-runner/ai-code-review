@@ -13,6 +13,10 @@ describe("Model", () => {
       connection: {},
       files: [],
       ignoreFiles: ["file1", "file2"],
+      pullRequest: {
+        description: "",
+        title: "",
+      },
     });
 
     model.addFile({

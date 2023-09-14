@@ -21,6 +21,12 @@ inputs:
     description: 'Target branch'
     required: false
     default: 'main'
+  prDescription:
+    description: 'Pull request description'
+    required: false
+  prTitle:
+    description: 'Pull request title'
+    required: false
 outputs:
   comments:
     description: Generated labels for your pull request.

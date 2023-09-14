@@ -88,7 +88,7 @@ class CodeFileAdapter extends adapter_1.Adapter {
         const files = changes
             .filter((change) => change.length > 0)
             .map((change) => {
-            var _a;
+            var _a, _b;
             const lines = change.split("\n");
             // file name without a/
             const fileName = (_a = lines[0].split(" ")[1]) === null || _a === void 0 ? void 0 : _a.replace("a/", "");
@@ -97,7 +97,7 @@ class CodeFileAdapter extends adapter_1.Adapter {
             //   '--- a/src/index.ts\n' +
             //   '+++ b/src/index.ts\n'
             const content = lines.slice(5).join("\n");
-            if (lines[4].includes("@@")) {
+            if ((_b = lines[4]) === null || _b === void 0 ? void 0 : _b.includes("@@")) {
                 const lineNumbers = lines[4].split("@@")[1].split(" ");
                 const start = this.cleanNumber(lineNumbers[1].split(",")[0]);
                 const end = this.cleanNumber(lineNumbers[2].split(",")[0]);
@@ -279,6 +279,8 @@ const runner_1 = __nccwpck_require__(9202);
     const ignoreFiles = core.getMultilineInput("ignoreFiles");
     const promptFile = core.getInput("promptFile");
     const targetBranch = core.getInput("targetBranch");
+    const prDescription = core.getInput("prDescription");
+    const prTitle = core.getInput("prTitle");
     const adapter = new codeFile_adapter_1.CodeFileAdapter();
     const commentAdapter = new prComment_adapter_1.PrCommentAdapter();
     const model = new azure_model_1.AzureModel({
@@ -289,6 +291,10 @@ const runner_1 = __nccwpck_require__(9202);
         files: [],
         ignoreFiles: [...ignoreFiles, "pnpm-lock.yaml", "package-lock.json"],
         promptFile: promptFile,
+        pullRequest: {
+            description: prDescription,
+            title: prTitle,
+        },
     });
     const runner = new runner_1.Runner({
         fileAdapter: adapter,
@@ -458,6 +464,14 @@ class Model {
       10. Reusability and readability
       11. Error handling
       12. Logging
+
+      Do not raise question about 'some file is added without any implementation'.
+
+      ---pull request info---
+      Pull Request Title: {{ pullRequest.title }}
+      Pull Request Description: {{ pullRequest.description }}
+      ---pull request info end---
+      ---Code changes---
       Code changes are follow:
       {% for file in files %}
       ---start---
@@ -467,6 +481,7 @@ class Model {
         {{ file.content }}
       ---end---
       {% endfor %}
+      ---Code changes end---
 
       You leave the following comment for each file using the following template:
       \`{file_path}\` (code block in markdown)
@@ -478,7 +493,7 @@ class Model {
     generatePrompt(args) {
         return __awaiter(this, void 0, void 0, function* () {
             nunjucks_1.default.configure({ autoescape: false });
-            return nunjucks_1.default.renderString(yield this.getPrompt(), Object.assign({ files: this.files }, args));
+            return nunjucks_1.default.renderString(yield this.getPrompt(), Object.assign({ files: this.files, pullRequest: this.args.pullRequest }, args));
         });
     }
 }

@@ -33,10 +33,13 @@ jobs:
         with:
           key: ${{ secrets.KEY }}
           endpoint: ${{ secrets.ENDPOINT }}
+          prTitle: ${{ github.event.pull_request.title }}
+          prDescription: ${{ github.event.pull_request.body }}
           ignoreFiles: |
             .github/workflows/pr.yaml
             dist/index.js
             CHANGELOG.md
+            .releaserc
       - uses: mshick/add-pr-comment@v2
         with:
           message-id: preview-url

@@ -2,12 +2,17 @@ import { ICodeFile } from "../types/code.file";
 import { IComment } from "../types/comment";
 import nunjucks from "nunjucks";
 import { readFile } from "fs/promises";
+import { PROMPT_TEXT } from "./prompt/simple.prompt";
 
 export interface IModel<C> {
   connection: C;
   files: ICodeFile[];
   promptFile?: string;
   ignoreFiles?: string[];
+  pullRequest: {
+    description: string;
+    title: string;
+  };
 }
 
 export abstract class Model {
@@ -39,39 +44,7 @@ export abstract class Model {
     if (this.args.promptFile) {
       return await readFile(this.args.promptFile, "utf-8");
     } else {
-      return `
-      You are a software engineer working on a project. You are reviewing a pull request. 
-      You should raise questions or concerns about the code. If no issues are found, you should skip the file.
-      Your comment should follow the following principles:
-      1. Code Quality
-      2. Performance
-      3. Security
-      4. Documentation
-      5. Naming conventions
-      6. Coding style
-      7. Testing
-      8. Simplicity
-      9. Maintainability
-      10. Reusability and readability
-      11. Error handling
-      12. Logging
-
-      Do not raise question about 'some file is added without any implementation'.
-
-      Code changes are follow:
-      {% for file in files %}
-      ---start---
-      %% File path: {{ file.filePath }} %%
-      %% Line start: {{ file.lineStart }} %%
-      %% Line end: {{ file.lineEnd }} %%
-        {{ file.content }}
-      ---end---
-      {% endfor %}
-
-      You leave the following comment for each file using the following template:
-      \`{file_path}\` (code block in markdown)
-      {comment}
-      `;
+      return PROMPT_TEXT;
     }
   }
 
@@ -81,7 +54,34 @@ export abstract class Model {
     nunjucks.configure({ autoescape: false });
     return nunjucks.renderString(await this.getPrompt(), {
       files: this.files,
+      pullRequest: this.cleanObjectString(this.args.pullRequest),
       ...args,
     });
+  }
+
+  /**
+   * Some obj may contain empty string. This function will replace those empty string to word 'empty'.
+   * @param obj Some obj
+   */
+  private cleanObjectString(obj: { [key: string]: any }) {
+    for (const [key, value] of Object.entries(obj)) {
+      if (value === "") {
+        obj[key] = "empty";
+      }
+
+      if (typeof value === "object") {
+        this.cleanObjectString(value);
+      }
+
+      if (Array.isArray(value)) {
+        for (const item of value) {
+          if (typeof item === "object") {
+            this.cleanObjectString(item);
+          }
+        }
+      }
+    }
+
+    return obj;
   }
 }
