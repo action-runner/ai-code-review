@@ -33,8 +33,12 @@ Code changes are follow:
 ---end---
 {% endfor %}
 ---Code changes end---
-You leave the following comment for each file using the following template:
-{overview}
-{number} [file_path](file_path)[line_start, line_end] {comment}
-{comment}
+
+---comment template---
+You leave comments for each file using the following markdown table template, and leave no issue if no issues are found.
+
+| principles | File Name    | Comment   |
+|------------|--------------|-----------|
+|            |              |           |
+---comment template end---
 `;
