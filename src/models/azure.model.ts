@@ -1,4 +1,3 @@
-import { ICodeFile } from "../types/code.file";
 import { IComment } from "../types/comment";
 import { IModel, Model } from "./model";
 import axios, { Axios } from "axios";
@@ -15,7 +14,7 @@ interface AIResponse {
   content: string;
 }
 
-interface IAzureModel extends IModel<Connection> {}
+export interface IAzureModel extends IModel<Connection> {}
 
 export class AzureModel extends Model {
   client: Axios;

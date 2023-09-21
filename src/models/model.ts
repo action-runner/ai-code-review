@@ -31,7 +31,7 @@ export abstract class Model {
 
   get files() {
     return this._files.filter(
-      (file) => !this.args.ignoreFiles?.includes(file.filePath)
+      (file) => !this.args.ignoreFiles?.includes(file.filePath),
     );
   }
 
@@ -40,7 +40,7 @@ export abstract class Model {
    */
   abstract generateComment(): Promise<IComment[]>;
 
-  private async getPrompt(): Promise<string> {
+  protected async getPrompt(): Promise<string> {
     if (this.args.promptFile) {
       return await readFile(this.args.promptFile, "utf-8");
     } else {
@@ -48,9 +48,7 @@ export abstract class Model {
     }
   }
 
-  protected async generatePrompt(args: {
-    [key: string]: any;
-  }): Promise<string> {
+  protected async generatePrompt(args: { [key: string]: any }): Promise<any> {
     nunjucks.configure({ autoescape: false });
     return nunjucks.renderString(await this.getPrompt(), {
       files: this.files,
