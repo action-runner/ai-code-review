@@ -135,7 +135,7 @@ exports.CodeFileAdapter = CodeFileAdapter;
 
 /***/ }),
 
-/***/ 6555:
+/***/ 8697:
 /***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
 
 "use strict";
@@ -149,17 +149,48 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", ({ value: true }));
-exports.PrCommentAdapter = void 0;
+exports.PrCommentFunctionalAdapter = void 0;
 const adapter_1 = __nccwpck_require__(364);
-class PrCommentAdapter extends adapter_1.Adapter {
+const nunjucks_1 = __importDefault(__nccwpck_require__(4433));
+const path_1 = __importDefault(__nccwpck_require__(1017));
+const template = `## Pull Request Review
+{% for comment in comments %}
+### \`{{ comment.files[0].filePath }}\`
+> **{{ comment.category }}** - {{ comment.content }}
+{{ comment.codeSnippet }}
+{% endfor %}
+`;
+class PrCommentFunctionalAdapter extends adapter_1.Adapter {
     adapt(comments) {
         return __awaiter(this, void 0, void 0, function* () {
-            return comments[0].content;
+            nunjucks_1.default.configure({ autoescape: false });
+            const refinedComments = comments
+                .filter((c) => c.content)
+                .map((comment) => {
+                const language = path_1.default
+                    .extname(comment.files[0].filePath)
+                    .replace(".", "");
+                const shouldNotUseCodeSnippet = comment.codeSnippet &&
+                    comment.codeSnippet.startsWith("```") &&
+                    comment.codeSnippet.endsWith("```");
+                if (shouldNotUseCodeSnippet) {
+                    return comment;
+                }
+                return Object.assign(Object.assign({}, comment), { codeSnippet: comment.codeSnippet
+                        ? `\`\`\`${language}\n${comment.codeSnippet}\n\`\`\``
+                        : undefined });
+            });
+            return nunjucks_1.default.renderString(template, {
+                comments: refinedComments,
+            });
         });
     }
 }
-exports.PrCommentAdapter = PrCommentAdapter;
+exports.PrCommentFunctionalAdapter = PrCommentFunctionalAdapter;
 
 
 /***/ }),
@@ -269,21 +300,28 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", ({ value: true }));
 const codeFile_adapter_1 = __nccwpck_require__(9890);
-const prComment_adapter_1 = __nccwpck_require__(6555);
-const azure_model_1 = __nccwpck_require__(5434);
 const core = __importStar(__nccwpck_require__(8434));
 const runner_1 = __nccwpck_require__(9202);
+const azure_function_model_1 = __nccwpck_require__(8458);
+const prComment_functional_adapter_1 = __nccwpck_require__(8697);
+function getInput(key, defaultValue) {
+    const value = core.getInput(key);
+    if (value.length === 0) {
+        return defaultValue;
+    }
+    return value;
+}
 (() => __awaiter(void 0, void 0, void 0, function* () {
-    const key = core.getInput("key");
-    const endpoint = core.getInput("endpoint");
+    const key = getInput("key", process.env.AZURE_KEY);
+    const endpoint = getInput("endpoint", process.env.AZURE_ENDPOINT);
     const ignoreFiles = core.getMultilineInput("ignoreFiles");
     const promptFile = core.getInput("promptFile");
-    const targetBranch = core.getInput("targetBranch");
+    const targetBranch = getInput("targetBranch", "main");
     const prDescription = core.getInput("prDescription");
     const prTitle = core.getInput("prTitle");
     const adapter = new codeFile_adapter_1.CodeFileAdapter();
-    const commentAdapter = new prComment_adapter_1.PrCommentAdapter();
-    const model = new azure_model_1.AzureModel({
+    const commentAdapter = new prComment_functional_adapter_1.PrCommentFunctionalAdapter();
+    const model = new azure_function_model_1.AzureFunctionalModel({
         connection: {
             key,
             endpoint,
@@ -295,6 +333,7 @@ const runner_1 = __nccwpck_require__(9202);
             description: prDescription,
             title: prTitle,
         },
+        chunkSize: 3,
     });
     const runner = new runner_1.Runner({
         fileAdapter: adapter,
@@ -303,6 +342,136 @@ const runner_1 = __nccwpck_require__(9202);
     });
     yield runner.run(targetBranch);
 }))();
+
+
+/***/ }),
+
+/***/ 8458:
+/***/ (function(__unused_webpack_module, exports, __nccwpck_require__) {
+
+"use strict";
+
+var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    var desc = Object.getOwnPropertyDescriptor(m, k);
+    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
+      desc = { enumerable: true, get: function() { return m[k]; } };
+    }
+    Object.defineProperty(o, k2, desc);
+}) : (function(o, m, k, k2) {
+    if (k2 === undefined) k2 = k;
+    o[k2] = m[k];
+}));
+var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
+    Object.defineProperty(o, "default", { enumerable: true, value: v });
+}) : function(o, v) {
+    o["default"] = v;
+});
+var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+    var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
+    if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
+    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    return c > 3 && r && Object.defineProperty(target, key, r), r;
+};
+var __importStar = (this && this.__importStar) || function (mod) {
+    if (mod && mod.__esModule) return mod;
+    var result = {};
+    if (mod != null) for (var k in mod) if (k !== "default" && Object.prototype.hasOwnProperty.call(mod, k)) __createBinding(result, mod, k);
+    __setModuleDefault(result, mod);
+    return result;
+};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.AzureFunctionalModel = void 0;
+const core = __importStar(__nccwpck_require__(8434));
+const catchAxiosError_decorator_1 = __nccwpck_require__(5971);
+const azure_model_1 = __nccwpck_require__(5434);
+const simpleFunction_prompt_1 = __nccwpck_require__(5543);
+class AzureFunctionalModel extends azure_model_1.AzureModel {
+    constructor(args) {
+        super(args);
+        this.chunkSize = args.chunkSize;
+    }
+    getPrompt() {
+        return __awaiter(this, void 0, void 0, function* () {
+            return simpleFunction_prompt_1.SimpleFunctionPrompt;
+        });
+    }
+    /**
+     * Chunk files into groups of `chunkSize`
+     * @param chunkSize
+     */
+    chunkFiles(chunkSize) {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.files.length === 0) {
+                return [];
+            }
+            const chunks = [];
+            for (let i = 0; i < this.files.length; i += chunkSize) {
+                chunks.push(this.files.slice(i, i + chunkSize));
+            }
+            return chunks;
+        });
+    }
+    generateComment() {
+        return __awaiter(this, void 0, void 0, function* () {
+            if (this.files.length === 0) {
+                core.info("No files to generate comment for.");
+                return [];
+            }
+            const chunks = yield this.chunkFiles(this.chunkSize);
+            const comments = [];
+            core.info("Total chunks: " + chunks.length);
+            let i = 0;
+            for (const chunk of chunks) {
+                core.info(`Generating comment for chunk ${i + 1}/${chunks.length}`);
+                const promises = chunk.map((file) => __awaiter(this, void 0, void 0, function* () {
+                    const prompt = yield this.generatePrompt(Object.assign({}, file));
+                    const response = yield this.client.post("", {
+                        messages: [
+                            {
+                                role: "system",
+                                content: prompt,
+                            },
+                        ],
+                        functions: [simpleFunction_prompt_1.SimpleFunction],
+                        function_call: {
+                            name: simpleFunction_prompt_1.SimpleFunction.name,
+                        },
+                    });
+                    const aiResponse = response.data.choices[0].message;
+                    const functionResponse = JSON.parse(aiResponse.function_call.arguments);
+                    const comment = {
+                        content: functionResponse.comment,
+                        files: [file],
+                        type: "comment",
+                        codeSnippet: functionResponse.codeSnippet,
+                        category: functionResponse.category,
+                    };
+                    return comment;
+                }));
+                const codeFiles = yield Promise.allSettled(promises);
+                comments.push(...codeFiles
+                    .filter((c) => c.status === "fulfilled")
+                    .map((c) => c.value));
+                i += 1;
+            }
+            return comments;
+        });
+    }
+}
+exports.AzureFunctionalModel = AzureFunctionalModel;
+__decorate([
+    (0, catchAxiosError_decorator_1.catchAxiosErrorDecorator)()
+], AzureFunctionalModel.prototype, "generateComment", null);
 
 
 /***/ }),
@@ -403,10 +572,10 @@ class AzureModel extends model_1.Model {
         });
     }
 }
+exports.AzureModel = AzureModel;
 __decorate([
     (0, catchAxiosError_decorator_1.catchAxiosErrorDecorator)()
 ], AzureModel.prototype, "generateComment", null);
-exports.AzureModel = AzureModel;
 
 
 /***/ }),
@@ -542,6 +711,66 @@ You leave comments for each file using the following markdown table template, an
 |            |              |           |
 ---comment template end---
 `;
+
+
+/***/ }),
+
+/***/ 5543:
+/***/ ((__unused_webpack_module, exports) => {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", ({ value: true }));
+exports.SimpleFunction = exports.SimpleFunctionPrompt = void 0;
+exports.SimpleFunctionPrompt = `
+You are a software engineer working on a project and reviewing a pull request.
+Pull Request Title: {{ pullRequest.title }}
+Pull Request Description: {{ pullRequest.description }}
+File path: {{ filePath }}
+Line start: {{ lineStart }}
+Line end: {{ lineEnd }}
+Code Content: {{ content }}
+`;
+exports.SimpleFunction = {
+    name: "pull_request_review",
+    description: `You are a software engineer working on a project. 
+  You are reviewing a pull request based on the code changes and pull request info.`,
+    parameters: {
+        type: "object",
+        required: ["shouldImprove", "comment", "category"],
+        properties: {
+            shouldImprove: {
+                type: "boolean",
+                description: "Whether to leave a comment for the given file or not. False will skip the file and no comment will be left.",
+            },
+            codeSnippet: {
+                type: "string",
+                description: "The code snippet for the given file including the original code and the suggested code separated by a comment.",
+            },
+            category: {
+                type: "string",
+                enum: [
+                    "Code Quality",
+                    "Performance",
+                    "Security",
+                    "Documentation",
+                    "Naming conventions",
+                    "Coding style",
+                    "Testing",
+                    "Simplicity",
+                    "Maintainability",
+                    "Reusability and readability",
+                    "Error handling",
+                    "Logging",
+                ],
+            },
+            comment: {
+                type: "string",
+                description: "The comment for the given file",
+            },
+        },
+    },
+};
 
 
 /***/ }),
