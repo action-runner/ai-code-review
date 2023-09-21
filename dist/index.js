@@ -724,6 +724,10 @@ Object.defineProperty(exports, "__esModule", ({ value: true }));
 exports.SimpleFunction = exports.SimpleFunctionPrompt = void 0;
 exports.SimpleFunctionPrompt = `
 You are a software engineer working on a project and reviewing a pull request.
+The given code content is a snippet of the code changes in the pull request
+between the previous and the current version of the code.
+The code details are as follows:
+
 Pull Request Title: {{ pullRequest.title }}
 Pull Request Description: {{ pullRequest.description }}
 File path: {{ filePath }}
